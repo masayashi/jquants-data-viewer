@@ -71,10 +71,11 @@ export default function FinancialView() {
     staleTime: 5 * 60 * 1000,
   });
 
-  const { data: financial, isLoading } = useQuery({
+  const { data: financial, isLoading, isError } = useQuery({
     queryKey: ["financials", selectedCode, docType],
     queryFn: () => getFinancials(selectedCode, docType),
     enabled: !!selectedCode,
+    retry: 0, // 財務データなし銘柄で無駄なリトライをしない
   });
 
   const selected = stocks.find((s) => s.code === selectedCode);
@@ -144,7 +145,7 @@ export default function FinancialView() {
         </div>
       )}
 
-      {financial && records.length === 0 && !isLoading && (
+      {(isError || (financial && records.length === 0)) && !isLoading && (
         <div
           style={{
             marginTop: 32,

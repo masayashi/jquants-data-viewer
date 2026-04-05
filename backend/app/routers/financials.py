@@ -76,22 +76,26 @@ def get_financials(
         where_clause = "AND DocType LIKE '%FinancialStatements%'"
         params = []
 
-    rows = db.execute(
-        f"""
-        SELECT
-            CAST(DiscDate AS VARCHAR) AS DiscDate,
-            DocType, CurPerSt, CurPerEn,
-            Sales, OP, OdP, NP, EPS,
-            TA, Eq, BPS,
-            CFO, CFI, CFF, CashEq,
-            DivAnn,
-            FSales, FOP, FNP, FEPS
-        FROM read_parquet('{glob}')
-        WHERE 1=1 {where_clause}
-        ORDER BY DiscDate DESC
-        """,
-        params,
-    ).fetchall()
+    try:
+        rows = db.execute(
+            f"""
+            SELECT
+                CAST(DiscDate AS VARCHAR) AS DiscDate,
+                DocType, CurPerSt, CurPerEn,
+                Sales, OP, OdP, NP, EPS,
+                TA, Eq, BPS,
+                CFO, CFI, CFF, CashEq,
+                DivAnn,
+                FSales, FOP, FNP, FEPS
+            FROM read_parquet('{glob}')
+            WHERE 1=1 {where_clause}
+            ORDER BY DiscDate DESC
+            """,
+            params,
+        ).fetchall()
+    except duckdb.IOException:
+        # 財務データが存在しない銘柄（ETF等）は空レスポンスを返す
+        return FinancialResponse(code=code, records=[])
 
     records = [
         FinancialRecord(
