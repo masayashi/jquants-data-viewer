@@ -12,11 +12,25 @@ router = APIRouter(prefix="/stocks", tags=["financials"])
 
 _CODE_RE = re.compile(r"^[A-Z0-9]{4,5}$")
 
+# 受け付ける doc_type プレフィックス。Parquet の実際の値は
+# "FYFinancialStatements_Consolidated_JP" のような完全文字列のため
+# LIKE '{prefix}%' でマッチングする。
+_VALID_DOC_TYPES = {"FY", "1Q", "2Q", "3Q"}
+
 
 def _validate_code(code: str) -> str:
     if not _CODE_RE.match(code):
         raise HTTPException(status_code=400, detail=f"Invalid code: {code!r}")
     return code
+
+
+def _validate_doc_type(doc_type: str) -> str:
+    if doc_type not in _VALID_DOC_TYPES:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid doc_type: {doc_type!r}. Must be one of {sorted(_VALID_DOC_TYPES)}",
+        )
+    return doc_type
 
 
 def _f(val: object) -> float | None:
@@ -33,17 +47,34 @@ def _f(val: object) -> float | None:
 def get_financials(
     code: Annotated[str, Path(description="銘柄コード (例: 13010)")],
     db: Annotated[duckdb.DuckDBPyConnection, Depends(get_db)],
-    doc_type: str | None = Query(None, description="開示区分でフィルタ (例: 1Q, 2Q, FY)"),
+    doc_type: str | None = Query(
+        None,
+        description=(
+            "開示区分プレフィックスでフィルタ（FY / 1Q / 2Q / 3Q）。"
+            "省略時は FinancialStatements 系のみ返す。"
+        ),
+    ),
 ) -> FinancialResponse:
     """銘柄の財務データ（PL/BS/CF・配当・予想）。
 
+    Parquet の DocType は "FYFinancialStatements_Consolidated_JP" 形式のため、
+    プレフィックス（FY/1Q/2Q/3Q）で LIKE マッチングを行う。
     Financial Parquet の数値カラムはすべて文字列型のため、
     このレイヤーで float への変換を行う（ADR-0001 参照）。
     """
     _validate_code(code)
 
     glob = str(settings.data_root / "financial" / code / "*.parquet")
-    where_extra = f"AND DocType = '{doc_type}'" if doc_type else ""
+
+    # doc_type 指定あり → LIKE '{prefix}%' でフィルタ
+    # 指定なし → FinancialStatements 系のみ（予想修正・配当修正レコードを除外）
+    if doc_type:
+        _validate_doc_type(doc_type)
+        where_clause = "AND DocType LIKE ?"
+        params: list[str] = [f"{doc_type}%"]
+    else:
+        where_clause = "AND DocType LIKE '%FinancialStatements%'"
+        params = []
 
     rows = db.execute(
         f"""
@@ -56,9 +87,10 @@ def get_financials(
             DivAnn,
             FSales, FOP, FNP, FEPS
         FROM read_parquet('{glob}')
-        WHERE 1=1 {where_extra}
+        WHERE 1=1 {where_clause}
         ORDER BY DiscDate DESC
-        """
+        """,
+        params,
     ).fetchall()
 
     records = [

@@ -62,7 +62,8 @@ function FinancialBarChart({
 
 export default function FinancialView() {
   const { selectedCode, setSelectedCode } = useAppStore();
-  const [docType, setDocType] = useState<string>("FY");
+  // 空文字 = フィルタなし（FinancialStatements 系を全件取得）
+  const [docType, setDocType] = useState<string>("");
 
   const { data: stocks = [] } = useQuery({
     queryKey: ["stocks"],
@@ -106,6 +107,7 @@ export default function FinancialView() {
             onChange={(e) => setDocType(e.target.value)}
             style={{ marginLeft: 8 }}
           >
+            <option value="">全期種</option>
             <option value="FY">通期 (FY)</option>
             <option value="2Q">第2四半期 (2Q)</option>
             <option value="1Q">第1四半期 (1Q)</option>

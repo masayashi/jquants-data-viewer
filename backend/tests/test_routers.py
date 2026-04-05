@@ -67,6 +67,28 @@ def test_financials_known_code() -> None:
     data = resp.json()
     assert data["code"] == "13010"
     assert isinstance(data["records"], list)
+    # DocType フィルタなし → FinancialStatements 系レコードが返る
+    assert len(data["records"]) > 0, "財務データが空（DocType フィルタの不一致を確認）"
+    for rec in data["records"]:
+        assert "FinancialStatements" in rec["doc_type"], (
+            f"FinancialStatements 以外のレコードが含まれている: {rec['doc_type']}"
+        )
+
+
+def test_financials_with_fy_filter() -> None:
+    resp = client.get("/v1/stocks/13010/financials", params={"doc_type": "FY"})
+    assert resp.status_code == 200
+    data = resp.json()
+    assert len(data["records"]) > 0, "FY フィルタで財務データが空"
+    for rec in data["records"]:
+        assert rec["doc_type"].startswith("FY"), (
+            f"FY 以外のレコードが含まれている: {rec['doc_type']}"
+        )
+
+
+def test_financials_invalid_doc_type_rejected() -> None:
+    resp = client.get("/v1/stocks/13010/financials", params={"doc_type": "INVALID"})
+    assert resp.status_code == 400
 
 
 def test_index_topix() -> None:
