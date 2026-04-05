@@ -95,7 +95,7 @@ export default function FinancialView() {
           >
             {stocks.map((s) => (
               <option key={s.code} value={s.code}>
-                {s.code} {s.name_en || s.name}
+                {s.code} {s.name}
               </option>
             ))}
           </select>
@@ -119,7 +119,7 @@ export default function FinancialView() {
 
       {selected && (
         <p style={{ color: "#555", marginBottom: 8 }}>
-          {selected.name_en || selected.name} ／ {selected.sector17_name}
+          {selected.name} ／ {selected.sector17_name}
         </p>
       )}
 

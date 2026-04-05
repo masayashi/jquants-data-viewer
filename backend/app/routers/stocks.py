@@ -56,28 +56,64 @@ def list_stocks(
     ]
 
 
+_FREQ_TRUNC: dict[str, str] = {
+    "daily": "",
+    "weekly": "week",
+    "monthly": "month",
+}
+
+
 @router.get("/{code}/timeseries", response_model=TimeseriesResponse)
 def get_timeseries(
     code: Annotated[str, Path(description="銘柄コード (例: 13010)")],
     db: Annotated[duckdb.DuckDBPyConnection, Depends(get_db)],
     start: str = Query("2020-01-01", description="開始日 YYYY-MM-DD"),
     end: str = Query("2099-12-31", description="終了日 YYYY-MM-DD"),
+    freq: str = Query("daily", description="集計粒度: daily | weekly | monthly"),
 ) -> TimeseriesResponse:
-    """銘柄の OHLCV 時系列（修正後価格含む）。"""
+    """銘柄の OHLCV 時系列（修正後価格含む）。freq で日足/週足/月足を切り替え可能。"""
     _validate_code(code)
     _validate_date(start, "start")
     _validate_date(end, "end")
+    if freq not in _FREQ_TRUNC:
+        raise HTTPException(status_code=400, detail=f"Invalid freq: {freq!r}. Must be daily, weekly, or monthly.")
 
     glob = str(settings.data_root / "equity_bars" / code / "*.parquet")
-    rows = db.execute(
-        f"""
-        SELECT Date, O, H, L, C, Vo, Va, AdjO, AdjH, AdjL, AdjC, AdjVo
-        FROM read_parquet('{glob}')
-        WHERE Date >= ? AND Date <= ?
-        ORDER BY Date
-        """,
-        [start, end],
-    ).fetchall()
+
+    if freq == "daily":
+        rows = db.execute(
+            f"""
+            SELECT Date, O, H, L, C, Vo, Va, AdjO, AdjH, AdjL, AdjC, AdjVo
+            FROM read_parquet('{glob}')
+            WHERE Date >= ? AND Date <= ?
+            ORDER BY Date
+            """,
+            [start, end],
+        ).fetchall()
+    else:
+        trunc = _FREQ_TRUNC[freq]
+        rows = db.execute(
+            f"""
+            SELECT
+                CAST(date_trunc('{trunc}', Date::DATE) AS VARCHAR) AS period,
+                FIRST(O ORDER BY Date)  AS O,
+                MAX(H)                  AS H,
+                MIN(L)                  AS L,
+                LAST(C ORDER BY Date)   AS C,
+                SUM(Vo)                 AS Vo,
+                SUM(Va)                 AS Va,
+                FIRST(AdjO ORDER BY Date) AS AdjO,
+                MAX(AdjH)               AS AdjH,
+                MIN(AdjL)               AS AdjL,
+                LAST(AdjC ORDER BY Date) AS AdjC,
+                SUM(AdjVo)              AS AdjVo
+            FROM read_parquet('{glob}')
+            WHERE Date >= ? AND Date <= ?
+            GROUP BY period
+            ORDER BY period
+            """,
+            [start, end],
+        ).fetchall()
 
     bars = [
         OhlcBar(

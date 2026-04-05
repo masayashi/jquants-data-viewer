@@ -38,7 +38,7 @@ export default function CompareView() {
       ? compareData.codes.map((code) => {
           const stock = stocks.find((s) => s.code === code);
           return {
-            name: stock ? `${code} ${stock.name_en || stock.name}` : code,
+            name: stock ? `${code} ${stock.name}` : code,
             dates: compareData.bars.map((b) => b.date),
             values: compareData.bars.map((b) => b.values[code] ?? null),
           };
@@ -94,7 +94,7 @@ export default function CompareView() {
                 gap: 4,
               }}
             >
-              {code} {stock?.name_en || ""}
+              {code} {stock?.name ?? ""}
               <button onClick={() => removeCode(code)} style={{ border: "none", background: "none", cursor: "pointer" }}>
                 ×
               </button>

@@ -1,20 +1,48 @@
 import ReactECharts from "echarts-for-react";
 import type { OhlcBar } from "../../api/types";
 
+const MA_COLORS: Record<number, string> = {
+  5: "#f0a500",
+  25: "#9b59b6",
+  75: "#2980b9",
+};
+
+function calcMA(closes: number[], window: number): (number | null)[] {
+  return closes.map((_, i) => {
+    if (i < window - 1) return null;
+    const sum = closes.slice(i - window + 1, i + 1).reduce((a, b) => a + b, 0);
+    return Math.round((sum / window) * 100) / 100;
+  });
+}
+
 interface Props {
   data: OhlcBar[];
   title?: string;
+  maWindows?: number[];
 }
 
-export default function OhlcChart({ data, title }: Props) {
+export default function OhlcChart({ data, title, maWindows = [] }: Props) {
   const dates = data.map((d) => d.date);
   const ohlc = data.map((d) => [d.adj_open, d.adj_close, d.adj_low, d.adj_high]);
   const volumes = data.map((d) => d.adj_volume);
+  const closes = data.map((d) => d.adj_close);
+
+  const maSeries = maWindows.map((w) => ({
+    name: `MA${w}`,
+    type: "line",
+    xAxisIndex: 0,
+    yAxisIndex: 0,
+    data: calcMA(closes, w),
+    smooth: false,
+    symbol: "none",
+    lineStyle: { width: 1.5, color: MA_COLORS[w] ?? "#888" },
+    itemStyle: { color: MA_COLORS[w] ?? "#888" },
+  }));
 
   const option = {
     title: title ? { text: title, left: "center" } : undefined,
     tooltip: { trigger: "axis", axisPointer: { type: "cross" } },
-    legend: { data: ["OHLC", "出来高"], top: 30 },
+    legend: { data: ["OHLC", "出来高", ...maWindows.map((w) => `MA${w}`)], top: 30 },
     grid: [
       { left: "8%", right: "4%", top: 60, height: "55%" },
       { left: "8%", right: "4%", top: "75%", height: "16%" },
@@ -71,6 +99,7 @@ export default function OhlcChart({ data, title }: Props) {
         data: volumes,
         itemStyle: { color: "#7fbe9e" },
       },
+      ...maSeries,
     ],
   };
 

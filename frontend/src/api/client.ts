@@ -20,11 +20,12 @@ export const getStocks = (): Promise<StockMaster[]> =>
 export const getTimeseries = (
   code: string,
   start: string,
-  end: string
+  end: string,
+  freq: "daily" | "weekly" | "monthly" = "daily"
 ): Promise<TimeseriesResponse> =>
   api
     .get<TimeseriesResponse>(`/stocks/${code}/timeseries`, {
-      params: { start, end },
+      params: { start, end, freq },
     })
     .then((r) => r.data);
 
