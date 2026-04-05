@@ -1,0 +1,15 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c 'f=\"${CLAUDE_TOOL_INPUT_file_path:-}\"; case \"$f\" in *.py) (cd \"$(dirname \"$f\")\" && cd \"$(git rev-parse --show-toplevel)/backend\" && uv run ruff format \"$f\" 2>/dev/null) || true ;; *.ts|*.tsx) (cd \"$(git rev-parse --show-toplevel)/frontend\" && npx --yes prettier --write \"$f\" 2>/dev/null) || true ;; esac'"
+          }
+        ]
+      }
+    ]
+  }
+}
