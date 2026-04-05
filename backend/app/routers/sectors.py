@@ -1,8 +1,7 @@
-import re
 from typing import Annotated, Literal
 
 import duckdb
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, Query
 
 from app.config import settings
 from app.db.connection import get_db
@@ -10,13 +9,7 @@ from app.models.sector import SectorAggregateResponse, SectorBar, SectorInfo
 
 router = APIRouter(prefix="/sectors", tags=["sectors"])
 
-_DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
-
-
-def _validate_date(date: str, name: str) -> str:
-    if not _DATE_RE.match(date):
-        raise HTTPException(status_code=400, detail=f"Invalid date for {name}: {date!r}")
-    return date
+_DATE_PATTERN = r"^\d{4}-\d{2}-\d{2}$"
 
 
 @router.get("", response_model=list[SectorInfo])
@@ -42,14 +35,11 @@ def list_sectors(
 def get_sector_aggregate(
     sector_code: str,
     db: Annotated[duckdb.DuckDBPyConnection, Depends(get_db)],
-    start: str = Query("2023-01-01", description="開始日 YYYY-MM-DD"),
-    end: str = Query("2099-12-31", description="終了日 YYYY-MM-DD"),
+    start: Annotated[str, Query(pattern=_DATE_PATTERN, description="開始日 YYYY-MM-DD")] = "2023-01-01",
+    end: Annotated[str, Query(pattern=_DATE_PATTERN, description="終了日 YYYY-MM-DD")] = "2099-12-31",
     classification: Literal["s17", "s33"] = Query("s17", description="業種分類"),
 ) -> SectorAggregateResponse:
     """業種単位の日次集計（売買代金合計・平均騰落率・構成銘柄数）。"""
-    _validate_date(start, "start")
-    _validate_date(end, "end")
-
     meta_path = str(settings.data_root / "metadata" / "all_equities.parquet")
     bars_glob = str(settings.data_root / "equity_bars" / "*" / "*.parquet")
     code_col = "S17" if classification == "s17" else "S33"

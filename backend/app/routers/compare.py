@@ -11,7 +11,7 @@ from app.models.financial import CompareBar, CompareResponse
 router = APIRouter(prefix="/compare", tags=["compare"])
 
 _CODE_RE = re.compile(r"^[A-Z0-9]{4,5}$")
-_DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+_DATE_PATTERN = r"^\d{4}-\d{2}-\d{2}$"
 
 MAX_SYMBOLS = 10
 
@@ -28,24 +28,16 @@ def _validate_codes(symbols_param: str) -> list[str]:
     return codes
 
 
-def _validate_date(date: str, name: str) -> str:
-    if not _DATE_RE.match(date):
-        raise HTTPException(status_code=400, detail=f"Invalid date for {name}: {date!r}")
-    return date
-
-
 @router.get("", response_model=CompareResponse)
 def compare_symbols(
     db: Annotated[duckdb.DuckDBPyConnection, Depends(get_db)],
     symbols: str = Query(..., description="カンマ区切り銘柄コード (最大10件)"),
-    start: str = Query("2020-01-01", description="開始日 YYYY-MM-DD"),
-    end: str = Query("2099-12-31", description="終了日 YYYY-MM-DD"),
+    start: Annotated[str, Query(pattern=_DATE_PATTERN, description="開始日 YYYY-MM-DD")] = "2020-01-01",
+    end: Annotated[str, Query(pattern=_DATE_PATTERN, description="終了日 YYYY-MM-DD")] = "2099-12-31",
     normalize: bool = Query(True, description="始点を 1.0 に正規化して比較"),
 ) -> CompareResponse:
     """複数銘柄の修正後終値を時系列で比較する。normalize=true で始点を 1.0 に揃える。"""
     codes = _validate_codes(symbols)
-    _validate_date(start, "start")
-    _validate_date(end, "end")
 
     # Build per-symbol subqueries and pivot
     bars_glob = str(settings.data_root / "equity_bars" / "*" / "*.parquet")

@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import ReactECharts from "echarts-for-react";
 import { getFinancials, getStocks } from "../api/client";
 import type { FinancialRecord } from "../api/types";
+import StockPicker from "../components/StockPicker";
 import { useAppStore } from "../store";
 
 type Metric =
@@ -69,6 +70,7 @@ export default function FinancialView() {
     data: financial,
     isLoading,
     isError,
+    error,
   } = useQuery({
     queryKey: ["financials", selectedCode, docType],
     queryFn: () => getFinancials(selectedCode, docType),
@@ -84,19 +86,9 @@ export default function FinancialView() {
       <h2>財務ビュー</h2>
 
       <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 16 }}>
-        <div>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <label>銘柄コード</label>
-          <select
-            value={selectedCode}
-            onChange={(e) => setSelectedCode(e.target.value)}
-            style={{ marginLeft: 8 }}
-          >
-            {stocks.map((s) => (
-              <option key={s.code} value={s.code}>
-                {s.code} {s.name}
-              </option>
-            ))}
-          </select>
+          <StockPicker stocks={stocks} value={selectedCode} onChange={setSelectedCode} />
         </div>
 
         <div>
@@ -122,8 +114,13 @@ export default function FinancialView() {
       )}
 
       {isLoading && <p>読み込み中…</p>}
+      {isError && (
+        <div style={{ color: "red", padding: "16px", background: "#ffe0e0", borderRadius: 4 }}>
+          エラーが発生しました: {(error as Error)?.message ?? "Unknown error"}
+        </div>
+      )}
 
-      {records.length > 0 && (
+      {!isLoading && !isError && records.length > 0 && (
         <div
           style={{
             display: "grid",
@@ -140,7 +137,7 @@ export default function FinancialView() {
         </div>
       )}
 
-      {(isError || (financial && records.length === 0)) && !isLoading && (
+      {!isError && financial && records.length === 0 && !isLoading && (
         <div
           style={{
             marginTop: 32,

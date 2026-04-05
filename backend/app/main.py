@@ -1,5 +1,7 @@
-from fastapi import FastAPI
+import duckdb
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
 from app.config import settings
 from app.routers import compare, financials, indices, sectors, stocks
@@ -23,6 +25,12 @@ app.include_router(sectors.router, prefix="/v1")
 app.include_router(compare.router, prefix="/v1")
 app.include_router(financials.router, prefix="/v1")
 app.include_router(indices.router, prefix="/v1")
+
+
+@app.exception_handler(duckdb.IOException)
+async def duckdb_ioerror_handler(_request: Request, exc: duckdb.IOException) -> JSONResponse:
+    """DuckDB ファイル読み取りエラーを 500 に統一する。"""
+    return JSONResponse(status_code=500, content={"detail": f"Data read error: {exc}"})
 
 
 @app.get("/health")

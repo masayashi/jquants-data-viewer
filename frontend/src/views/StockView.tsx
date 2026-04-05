@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getStocks, getTimeseries } from "../api/client";
 import OhlcChart from "../components/charts/OhlcChart";
+import StockPicker from "../components/StockPicker";
 import { useAppStore } from "../store";
 
 type Freq = "daily" | "weekly" | "monthly";
@@ -18,7 +19,11 @@ export default function StockView() {
   const toggleMA = (w: number) => {
     setEnabledMAs((prev) => {
       const next = new Set(prev);
-      next.has(w) ? next.delete(w) : next.add(w);
+      if (next.has(w)) {
+        next.delete(w);
+      } else {
+        next.add(w);
+      }
       return next;
     });
   };
@@ -29,7 +34,7 @@ export default function StockView() {
     staleTime: 5 * 60 * 1000,
   });
 
-  const { data: timeseries, isLoading } = useQuery({
+  const { data: timeseries, isLoading, isError, error } = useQuery({
     queryKey: ["timeseries", selectedCode, startDate, endDate, freq],
     queryFn: () => getTimeseries(selectedCode, startDate, endDate, freq),
     enabled: !!selectedCode,
@@ -42,19 +47,9 @@ export default function StockView() {
       <h2>銘柄ビュー</h2>
 
       <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 16 }}>
-        <div>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <label>銘柄コード</label>
-          <select
-            value={selectedCode}
-            onChange={(e) => setSelectedCode(e.target.value)}
-            style={{ marginLeft: 8 }}
-          >
-            {stocks.map((s) => (
-              <option key={s.code} value={s.code}>
-                {s.code} {s.name}
-              </option>
-            ))}
-          </select>
+          <StockPicker stocks={stocks} value={selectedCode} onChange={setSelectedCode} />
         </div>
 
         <div>
@@ -124,14 +119,21 @@ export default function StockView() {
       )}
 
       {isLoading && <p>読み込み中…</p>}
-      {timeseries && timeseries.bars.length > 0 && (
+      {isError && (
+        <div style={{ color: "red", padding: "16px", background: "#ffe0e0", borderRadius: 4 }}>
+          エラーが発生しました: {(error as Error)?.message ?? "Unknown error"}
+        </div>
+      )}
+      {!isLoading && !isError && timeseries && timeseries.bars.length > 0 && (
         <OhlcChart
           data={timeseries.bars}
           title={`${selectedCode} 修正後株価（${FREQ_LABELS[freq]}）`}
           maWindows={[...enabledMAs].sort((a, b) => a - b)}
         />
       )}
-      {timeseries && timeseries.bars.length === 0 && <p>指定期間にデータがありません。</p>}
+      {!isLoading && !isError && timeseries && timeseries.bars.length === 0 && (
+        <p>指定期間にデータがありません。</p>
+      )}
     </div>
   );
 }

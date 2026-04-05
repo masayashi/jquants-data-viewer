@@ -1,5 +1,4 @@
-import re
-from typing import Annotated
+from typing import Annotated, Literal
 
 import duckdb
 from fastapi import APIRouter, Depends, HTTPException, Path, Query
@@ -10,20 +9,8 @@ from app.models.stock import OhlcBar, StockMaster, TimeseriesResponse
 
 router = APIRouter(prefix="/stocks", tags=["stocks"])
 
-_CODE_RE = re.compile(r"^[A-Z0-9]{4,5}$")
-_DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
-
-
-def _validate_code(code: str) -> str:
-    if not _CODE_RE.match(code):
-        raise HTTPException(status_code=400, detail=f"Invalid code: {code!r}")
-    return code
-
-
-def _validate_date(date: str, name: str) -> str:
-    if not _DATE_RE.match(date):
-        raise HTTPException(status_code=400, detail=f"Invalid date for {name}: {date!r}")
-    return date
+_CODE_PATTERN = r"^[A-Z0-9]{4,5}$"
+_DATE_PATTERN = r"^\d{4}-\d{2}-\d{2}$"
 
 
 @router.get("", response_model=list[StockMaster])
@@ -65,25 +52,17 @@ _FREQ_TRUNC: dict[str, str] = {
 
 @router.get("/{code}/timeseries", response_model=TimeseriesResponse)
 def get_timeseries(
-    code: Annotated[str, Path(description="銘柄コード (例: 13010)")],
+    code: Annotated[str, Path(pattern=_CODE_PATTERN, description="銘柄コード (例: 13010)")],
     db: Annotated[duckdb.DuckDBPyConnection, Depends(get_db)],
-    start: str = Query("2020-01-01", description="開始日 YYYY-MM-DD"),
-    end: str = Query("2099-12-31", description="終了日 YYYY-MM-DD"),
-    freq: str = Query("daily", description="集計粒度: daily | weekly | monthly"),
+    start: Annotated[str, Query(pattern=_DATE_PATTERN, description="開始日 YYYY-MM-DD")] = "2020-01-01",
+    end: Annotated[str, Query(pattern=_DATE_PATTERN, description="終了日 YYYY-MM-DD")] = "2099-12-31",
+    freq: Literal["daily", "weekly", "monthly"] = "daily",
 ) -> TimeseriesResponse:
     """銘柄の OHLCV 時系列（修正後価格含む）。freq で日足/週足/月足を切り替え可能。"""
-    _validate_code(code)
-    _validate_date(start, "start")
-    _validate_date(end, "end")
-    if freq not in _FREQ_TRUNC:
-        raise HTTPException(
-            status_code=400, detail=f"Invalid freq: {freq!r}. Must be daily, weekly, or monthly."
-        )
+    if not list((settings.data_root / "equity_bars" / code).glob("*.parquet")):
+        raise HTTPException(status_code=404, detail=f"No data available for code {code}")
 
     glob = str(settings.data_root / "equity_bars" / code / "*.parquet")
-    from pathlib import Path
-    if not list(Path(settings.data_root / "equity_bars" / code).glob("*.parquet")):
-        raise HTTPException(status_code=404, detail=f"No data available for code {code}")
 
     if freq == "daily":
         rows = db.execute(
