@@ -29,10 +29,7 @@ export const getTimeseries = (
     })
     .then((r) => r.data);
 
-export const getFinancials = (
-  code: string,
-  docType?: string
-): Promise<FinancialResponse> =>
+export const getFinancials = (code: string, docType?: string): Promise<FinancialResponse> =>
   api
     .get<FinancialResponse>(`/stocks/${code}/financials`, {
       params: docType ? { doc_type: docType } : undefined,
@@ -43,12 +40,8 @@ export const getFinancials = (
 // Sectors
 // ---------------------------------------------------------------------------
 
-export const getSectors = (
-  classification: "s17" | "s33" = "s17"
-): Promise<SectorInfo[]> =>
-  api
-    .get<SectorInfo[]>("/sectors", { params: { classification } })
-    .then((r) => r.data);
+export const getSectors = (classification: "s17" | "s33" = "s17"): Promise<SectorInfo[]> =>
+  api.get<SectorInfo[]>("/sectors", { params: { classification } }).then((r) => r.data);
 
 export const getSectorAggregate = (
   sectorCode: string,

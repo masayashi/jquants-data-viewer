@@ -15,7 +15,7 @@ export default function CompareView() {
     staleTime: 5 * 60 * 1000,
   });
 
-  const { data: compareData, isLoading } = useQuery({
+  const { data: compareData, isLoading, isError, error } = useQuery({
     queryKey: ["compare", compareCodes, startDate, endDate, normalize],
     queryFn: () => getCompare(compareCodes, startDate, endDate, normalize),
     enabled: compareCodes.length >= 2,
@@ -95,7 +95,10 @@ export default function CompareView() {
               }}
             >
               {code} {stock?.name ?? ""}
-              <button onClick={() => removeCode(code)} style={{ border: "none", background: "none", cursor: "pointer" }}>
+              <button
+                onClick={() => removeCode(code)}
+                style={{ border: "none", background: "none", cursor: "pointer" }}
+              >
                 ×
               </button>
             </span>
@@ -113,7 +116,12 @@ export default function CompareView() {
 
       {compareCodes.length < 2 && <p>2銘柄以上を選択してください。</p>}
       {isLoading && <p>読み込み中…</p>}
-      {series.length > 0 && (
+      {isError && (
+        <div style={{ color: "red", padding: "16px", background: "#ffe0e0" }}>
+          エラーが発生しました: {error?.message || "Unknown error"}
+        </div>
+      )}
+      {!isLoading && !isError && series.length > 0 && (
         <LineChart
           series={series}
           title={normalize ? "相対パフォーマンス比較（始点=1.0）" : "修正後終値比較"}

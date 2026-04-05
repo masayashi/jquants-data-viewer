@@ -50,7 +50,7 @@ def get_financials(
     doc_type: str | None = Query(
         None,
         description=(
-            "開示区分プレフィックスでフィルタ（FY / 1Q / 2Q / 3Q）。"
+            "開示区分プレフィックスでフィルタ(FY / 1Q / 2Q / 3Q)。"
             "省略時は FinancialStatements 系のみ返す。"
         ),
     ),
@@ -67,7 +67,7 @@ def get_financials(
     glob = str(settings.data_root / "financial" / code / "*.parquet")
 
     # doc_type 指定あり → LIKE '{prefix}%' でフィルタ
-    # 指定なし → FinancialStatements 系のみ（予想修正・配当修正レコードを除外）
+    # 指定なし → FinancialStatements 系のみ(予想修正・配当修正レコードを除外)
     if doc_type:
         _validate_doc_type(doc_type)
         where_clause = "AND DocType LIKE ?"
@@ -94,7 +94,7 @@ def get_financials(
             params,
         ).fetchall()
     except duckdb.IOException:
-        # 財務データが存在しない銘柄（ETF等）は空レスポンスを返す
+        # 財務データが存在しない銘柄(ETF等)は空レスポンスを返す
         return FinancialResponse(code=code, records=[])
 
     records = [

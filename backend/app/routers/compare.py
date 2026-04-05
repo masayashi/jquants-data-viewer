@@ -69,9 +69,7 @@ def compare_symbols(
 
     if normalize and date_map:
         first_date = min(date_map)
-        base = {
-            code: date_map[first_date].get(code) for code in codes
-        }
+        base = {code: date_map[first_date].get(code) for code in codes}
         normalized_map: dict[str, dict[str, float | None]] = {}
         for date, vals in date_map.items():
             row: dict[str, float | None] = {}
@@ -81,7 +79,5 @@ def compare_symbols(
             normalized_map[date] = row
         date_map = normalized_map
 
-    compare_bars = [
-        CompareBar(date=date, values=vals) for date, vals in sorted(date_map.items())
-    ]
+    compare_bars = [CompareBar(date=date, values=vals) for date, vals in sorted(date_map.items())]
     return CompareResponse(codes=codes, bars=compare_bars, normalized=normalize)

@@ -20,7 +20,7 @@ export default function SectorView() {
     staleTime: 5 * 60 * 1000,
   });
 
-  const { data: aggregate, isLoading } = useQuery({
+  const { data: aggregate, isLoading, isError, error } = useQuery({
     queryKey: ["sector-aggregate", selectedSector, startDate, endDate, sectorClassification],
     queryFn: () => getSectorAggregate(selectedSector, startDate, endDate, sectorClassification),
     enabled: !!selectedSector,
@@ -100,10 +100,15 @@ export default function SectorView() {
       </div>
 
       {isLoading && <p>読み込み中…</p>}
-      {returnSeries.length > 0 && (
+      {isError && (
+        <div style={{ color: "red", padding: "16px", background: "#ffe0e0" }}>
+          エラーが発生しました: {error?.message || "Unknown error"}
+        </div>
+      )}
+      {!isLoading && !isError && returnSeries.length > 0 && (
         <LineChart series={returnSeries} title="日次平均騰落率 (%)" yAxisLabel="%" />
       )}
-      {valueSeries.length > 0 && (
+      {!isLoading && !isError && valueSeries.length > 0 && (
         <LineChart series={valueSeries} title="日次売買代金合計" yAxisLabel="円" />
       )}
       {aggregate && aggregate.bars.length === 0 && <p>指定期間にデータがありません。</p>}

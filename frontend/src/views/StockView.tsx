@@ -100,12 +100,17 @@ export default function StockView() {
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
           <span style={{ fontSize: 13, color: "#555" }}>移動平均:</span>
           {MA_OPTIONS.map((w) => (
-            <label key={w} style={{ display: "flex", alignItems: "center", gap: 3, cursor: "pointer", fontSize: 13 }}>
-              <input
-                type="checkbox"
-                checked={enabledMAs.has(w)}
-                onChange={() => toggleMA(w)}
-              />
+            <label
+              key={w}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 3,
+                cursor: "pointer",
+                fontSize: 13,
+              }}
+            >
+              <input type="checkbox" checked={enabledMAs.has(w)} onChange={() => toggleMA(w)} />
               <span style={{ color: MA_COLORS[w], fontWeight: 600 }}>MA{w}</span>
             </label>
           ))}
@@ -126,9 +131,7 @@ export default function StockView() {
           maWindows={[...enabledMAs].sort((a, b) => a - b)}
         />
       )}
-      {timeseries && timeseries.bars.length === 0 && (
-        <p>指定期間にデータがありません。</p>
-      )}
+      {timeseries && timeseries.bars.length === 0 && <p>指定期間にデータがありません。</p>}
     </div>
   );
 }

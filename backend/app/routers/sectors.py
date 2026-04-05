@@ -35,9 +35,7 @@ def list_sectors(
         ORDER BY {code_col}
         """
     ).fetchall()
-    return [
-        SectorInfo(code=r[0], name=r[1] or "", classification=classification) for r in rows
-    ]
+    return [SectorInfo(code=r[0], name=r[1] or "", classification=classification) for r in rows]
 
 
 @router.get("/{sector_code}/aggregate", response_model=SectorAggregateResponse)

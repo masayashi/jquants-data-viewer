@@ -76,9 +76,14 @@ def get_timeseries(
     _validate_date(start, "start")
     _validate_date(end, "end")
     if freq not in _FREQ_TRUNC:
-        raise HTTPException(status_code=400, detail=f"Invalid freq: {freq!r}. Must be daily, weekly, or monthly.")
+        raise HTTPException(
+            status_code=400, detail=f"Invalid freq: {freq!r}. Must be daily, weekly, or monthly."
+        )
 
     glob = str(settings.data_root / "equity_bars" / code / "*.parquet")
+    from pathlib import Path
+    if not list(Path(settings.data_root / "equity_bars" / code).glob("*.parquet")):
+        raise HTTPException(status_code=404, detail=f"No data available for code {code}")
 
     if freq == "daily":
         rows = db.execute(
@@ -95,7 +100,7 @@ def get_timeseries(
         rows = db.execute(
             f"""
             SELECT
-                CAST(date_trunc('{trunc}', Date::DATE) AS VARCHAR) AS period,
+                CAST(date_trunc(?, Date::DATE) AS VARCHAR) AS period,
                 FIRST(O ORDER BY Date)  AS O,
                 MAX(H)                  AS H,
                 MIN(L)                  AS L,
@@ -112,7 +117,7 @@ def get_timeseries(
             GROUP BY period
             ORDER BY period
             """,
-            [start, end],
+            [trunc, start, end],
         ).fetchall()
 
     bars = [

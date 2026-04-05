@@ -34,6 +34,10 @@ def get_index(
     _validate_date(end, "end")
 
     path = str(settings.data_root / "indices" / f"{index_code}.parquet")
+    from pathlib import Path
+    if not Path(path).exists():
+        raise HTTPException(status_code=404, detail=f"No data available for index {index_code}")
+
     rows = db.execute(
         f"""
         SELECT Date, O, H, L, C

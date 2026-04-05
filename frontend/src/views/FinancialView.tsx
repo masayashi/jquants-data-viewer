@@ -28,13 +28,7 @@ const METRIC_LABELS: Record<Metric, string> = {
 
 const ALL_METRICS = Object.keys(METRIC_LABELS) as Metric[];
 
-function FinancialBarChart({
-  records,
-  metric,
-}: {
-  records: FinancialRecord[];
-  metric: Metric;
-}) {
+function FinancialBarChart({ records, metric }: { records: FinancialRecord[]; metric: Metric }) {
   const filtered = [...records]
     .filter((r) => r[metric] !== null)
     .sort((a, b) => a.period_end.localeCompare(b.period_end));
@@ -71,7 +65,11 @@ export default function FinancialView() {
     staleTime: 5 * 60 * 1000,
   });
 
-  const { data: financial, isLoading, isError } = useQuery({
+  const {
+    data: financial,
+    isLoading,
+    isError,
+  } = useQuery({
     queryKey: ["financials", selectedCode, docType],
     queryFn: () => getFinancials(selectedCode, docType),
     enabled: !!selectedCode,
@@ -134,10 +132,7 @@ export default function FinancialView() {
           }}
         >
           {ALL_METRICS.map((m) => (
-            <div
-              key={m}
-              style={{ border: "1px solid #e0e0e0", borderRadius: 4, padding: 8 }}
-            >
+            <div key={m} style={{ border: "1px solid #e0e0e0", borderRadius: 4, padding: 8 }}>
               <h4 style={{ margin: "0 0 4px" }}>{METRIC_LABELS[m]}</h4>
               <FinancialBarChart records={records} metric={m} />
             </div>
