@@ -22,7 +22,7 @@ interface AppState {
 }
 
 export const useAppStore = create<AppState>((set) => ({
-  selectedCode: "13010",
+  selectedCode: "79740",
   setSelectedCode: (code) => set({ selectedCode: code }),
 
   startDate: "2022-01-01",

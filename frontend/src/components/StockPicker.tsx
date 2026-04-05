@@ -42,7 +42,7 @@ export default function StockPicker({ stocks, value, onChange, style }: Props) {
             s.name.includes(query)
         )
         .slice(0, 50)
-    : stocks.slice(0, 50);
+    : stocks;
 
   const handleSelect = (s: StockMaster) => {
     onChange(s.code);

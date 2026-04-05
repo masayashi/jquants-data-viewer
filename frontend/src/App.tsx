@@ -1,7 +1,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { NavLink, Route, BrowserRouter as Router, Routes } from "react-router-dom";
 import CompareView from "./views/CompareView";
-import FinancialView from "./views/FinancialView";
 import SectorView from "./views/SectorView";
 import StockView from "./views/StockView";
 
@@ -18,7 +17,6 @@ const NAV_ITEMS = [
   { to: "/", label: "銘柄" },
   { to: "/sectors", label: "業種" },
   { to: "/compare", label: "比較" },
-  { to: "/financials", label: "財務" },
 ];
 
 const navStyle = (isActive: boolean): React.CSSProperties => ({
@@ -60,7 +58,6 @@ export default function App() {
             <Route path="/" element={<StockView />} />
             <Route path="/sectors" element={<SectorView />} />
             <Route path="/compare" element={<CompareView />} />
-            <Route path="/financials" element={<FinancialView />} />
           </Routes>
         </main>
       </Router>
