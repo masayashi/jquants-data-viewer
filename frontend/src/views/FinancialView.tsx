@@ -62,8 +62,8 @@ function FinancialBarChart({
 
 export default function FinancialView() {
   const { selectedCode, setSelectedCode } = useAppStore();
-  // 空文字 = フィルタなし（FinancialStatements 系を全件取得）
-  const [docType, setDocType] = useState<string>("");
+  // "FY" = 通期（デフォルト）、"" = 全期種
+  const [docType, setDocType] = useState<string>("FY");
 
   const { data: stocks = [] } = useQuery({
     queryKey: ["stocks"],
@@ -107,11 +107,11 @@ export default function FinancialView() {
             onChange={(e) => setDocType(e.target.value)}
             style={{ marginLeft: 8 }}
           >
+            <option value="FY">通期</option>
             <option value="">全期種</option>
-            <option value="FY">通期 (FY)</option>
-            <option value="2Q">第2四半期 (2Q)</option>
-            <option value="1Q">第1四半期 (1Q)</option>
-            <option value="3Q">第3四半期 (3Q)</option>
+            <option value="1Q">第１四半期</option>
+            <option value="2Q">第２四半期</option>
+            <option value="3Q">第３四半期</option>
           </select>
         </div>
       </div>
@@ -144,8 +144,34 @@ export default function FinancialView() {
         </div>
       )}
 
-      {financial && records.length === 0 && (
-        <p>選択した開示区分のデータがありません。</p>
+      {financial && records.length === 0 && !isLoading && (
+        <div
+          style={{
+            marginTop: 32,
+            padding: "24px 32px",
+            background: "#f9fafb",
+            border: "1px solid #e5e7eb",
+            borderRadius: 8,
+            textAlign: "center",
+            color: "#6b7280",
+          }}
+        >
+          <div style={{ fontSize: 32, marginBottom: 8 }}>📭</div>
+          <div style={{ fontWeight: 600, marginBottom: 4 }}>財務データがありません</div>
+          <div style={{ fontSize: 13 }}>
+            {docType
+              ? `この銘柄には「${
+                  docType === "FY"
+                    ? "通期"
+                    : docType === "1Q"
+                      ? "第１四半期"
+                      : docType === "2Q"
+                        ? "第２四半期"
+                        : "第３四半期"
+                }」の開示データが存在しません。`
+              : "この銘柄には財務開示データが存在しません。"}
+          </div>
+        </div>
       )}
     </div>
   );
